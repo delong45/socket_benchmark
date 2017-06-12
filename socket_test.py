@@ -2,13 +2,38 @@
 
 import os
 import sys
+import socket
 import optparse
 
 class LocalSocket(object):
-    pass
+    def __init__(self, chunk, num):
+        self.chunk = chunk
+        self.num = num
+        self.sock = socket.socket(socket.AF_UNIX, socket.STREAM)
+
+    def create_client_socket(self):
+        pass
+
+    def create_server_socket(self):
+        pass
+
+    def close(self):
+        pass
 
 class NetworkSocket(object):
-    pass
+    def __init__(self, chunk, num):
+        self.chunk = chunk
+        self.num = num
+        self.sock = socket.socket(socket.AF_INET, socket.STREAM)
+
+    def create_client_socket(self):
+        pass
+
+    def create_server_socket(self):
+        pass
+
+    def close(self):
+        pass
 
 def check_args(opt):
     if not opt.target or not opt.size or not opt.chunk:
@@ -32,6 +57,11 @@ if __name__ == '__main__':
                       dest='chunk', 
                       type='int',
                       help='size of chunk to transport')
+    parser.add_option('-n', '--num',
+                      dest='num',
+                      type='int',
+                      default=10000,
+                      help='total number of sending time')
     options, args = parser.parse_args()
 
     if not check_args(options):
