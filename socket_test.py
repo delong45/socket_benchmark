@@ -6,34 +6,62 @@ import socket
 import optparse
 
 class LocalSocket(object):
-    def __init__(self, chunk, num):
+    def __init__(self, chunk, num, addr_dir='/var/run/socket_benchmark/'):
         self.chunk = chunk
         self.num = num
+        self.addr_dir = addr_dir
+        self.addr = self.addr_dir + 'socket.benchmark'
         self.sock = socket.socket(socket.AF_UNIX, socket.STREAM)
 
     def create_client_socket(self):
-        pass
+        self.sock.connect(self.addr)
+        return self.sock
 
     def create_server_socket(self):
+        if not os.path.exists(self.addr_dir):
+            os.makedirs(self.addr_dir)
+
+        try:
+            os.remove(self.addr)
+        except OSError:
+            pass
+        self.sock.bind(self.addr)
+        self.sock.listen(10)
+
+        return self.sock
+
+    def run(self):
         pass
 
     def close(self):
-        pass
+        if self.sock:
+            self.sock.close()
 
 class NetworkSocket(object):
-    def __init__(self, chunk, num):
+    def __init__(self, chunk, num, host='127.0.0.1', port=8081):
         self.chunk = chunk
         self.num = num
+        self.host = host
+        self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.STREAM)
 
     def create_client_socket(self):
-        pass
+        self.sock.connect((self.host, self.port))
+
+        return self.sock
 
     def create_server_socket(self):
+        self.sock.bind((self.host, self.port))
+        self.sock.listen(10)
+
+        return self.sock
+
+    def run(self):
         pass
 
     def close(self):
-        pass
+        if self.sock:
+            self.sock.close()
 
 def check_args(opt):
     if not opt.target or not opt.size or not opt.chunk:
@@ -68,3 +96,8 @@ if __name__ == '__main__':
         sys.stderr.write('check arguments failed')
         parser.print_help()
         sys.exit(1)
+
+    if options.target == 'local':
+        local_socket = LocalSocket(options.chunk, options.num)
+    else:
+        network_socket = NetworkSocket(options.chunk, options.num)
