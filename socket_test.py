@@ -2,8 +2,17 @@
 
 import os
 import sys
+import time
 import socket
 import optparse
+
+def generate_record(chunk, num, cost_time):
+    total_bytes = chunk * num * 1024
+    speed = total_bytes / cost_time
+    print('chunk:%d num:%d, speed:%.2f bytes/sec\n' % (chunk, num, speed))
+
+def generate_msg(chunk):
+    return ''
 
 class LocalSocket(object):
     def __init__(self, chunk, num, addr_dir='/var/run/socket_benchmark/'):
@@ -11,7 +20,7 @@ class LocalSocket(object):
         self.num = num
         self.addr_dir = addr_dir
         self.addr = self.addr_dir + 'socket.benchmark'
-        self.msg = ''
+        self.msg = generate_msg(chunk)
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
     def create_client_socket(self):
@@ -151,17 +160,25 @@ if __name__ == '__main__':
 
     if options.target == 'local':
         local_socket = LocalSocket(options.chunk, options.num)
+        start = time.time()
         try:
             local_socket.run(options.size)
         except Exception, e:
-            sys.stderr.write(str(e))
+            sys.stderr.write(str(e)+'\n')
             local_socket.close()
             sys.exit(2)
+        end = time.time()
+        cost = end - start
     else:
         network_socket = NetworkSocket(options.chunk, options.num, options.host, options.port)
+        start = time.time()
         try:
             network_socket.run(options.size)
         except Exception, e:
-            sys.stderr.write(str(e))
+            sys.stderr.write(str(e)+'\n')
             network_socket.close()
             sys.exit(3)
+        end = time.time()
+        cost = end - start
+
+    generate_record(options.chunk, options.num, cost)
