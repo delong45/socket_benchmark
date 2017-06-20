@@ -11,7 +11,8 @@ class LocalSocket(object):
         self.num = num
         self.addr_dir = addr_dir
         self.addr = self.addr_dir + 'socket.benchmark'
-        self.sock = socket.socket(socket.AF_UNIX, socket.STREAM)
+        self.msg = ''
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
     def create_client_socket(self):
         self.sock.connect(self.addr)
@@ -30,8 +31,29 @@ class LocalSocket(object):
 
         return self.sock
 
-    def run(self):
-        pass
+    def run_client(self):
+        sock = self.create_client_socket()
+        for i in range(self.num):
+            sock.sendall(self.msg)
+            data = s.recv(1024)
+        self.close()
+
+    def run_server(self):
+        sock = self.create_server_socket()
+        conn, addr = sock.accept()
+        while True:
+            data = conn.recv(self.chunk)
+            if not data:
+                break
+            conn.send('server received your message.')
+        conn.close()
+
+    def run(self, size):
+        if size == 'client':
+            self.run_client()
+        else:
+            self.run_server()
+        self.close()
 
     def close(self):
         if self.sock:
@@ -43,11 +65,11 @@ class NetworkSocket(object):
         self.num = num
         self.host = host
         self.port = port
-        self.sock = socket.socket(socket.AF_INET, socket.STREAM)
+        self.msg = ''
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def create_client_socket(self):
         self.sock.connect((self.host, self.port))
-
         return self.sock
 
     def create_server_socket(self):
@@ -56,8 +78,29 @@ class NetworkSocket(object):
 
         return self.sock
 
-    def run(self):
-        pass
+    def run_client(self):
+        sock = self.create_client_socket()
+        for i in range(self.num):
+            sock.sendall(self.msg)
+            data = s.recv(1024)
+        self.close()
+
+    def run_server(self):
+        sock = self.create_server_socket()
+        conn, addr = sock.accept()
+        while True:
+            data = conn.recv(self.chunk)
+            if not data:
+                break
+            conn.send('server received your message.')
+        conn.close()
+
+    def run(self, size):
+        if size == 'client':
+            self.run_client()
+        else:
+            self.run_server()
+        self.close()
 
     def close(self):
         if self.sock:
@@ -90,6 +133,15 @@ if __name__ == '__main__':
                       type='int',
                       default=10000,
                       help='total number of sending time')
+    parser.add_option('-H', '--host',
+                      dest='host',
+                      default='127.0.0.1',
+                      help='host of network socket')
+    parser.add_option('-P', '--port',
+                      dest='port',
+                      type='int',
+                      default=8081,
+                      help='port of network socket')
     options, args = parser.parse_args()
 
     if not check_args(options):
@@ -99,5 +151,17 @@ if __name__ == '__main__':
 
     if options.target == 'local':
         local_socket = LocalSocket(options.chunk, options.num)
+        try:
+            local_socket.run(options.size)
+        except Exception, e:
+            sys.stderr.write(str(e))
+            local_socket.close()
+            sys.exit(2)
     else:
-        network_socket = NetworkSocket(options.chunk, options.num)
+        network_socket = NetworkSocket(options.chunk, options.num, options.host, options.port)
+        try:
+            network_socket.run(options.size)
+        except Exception, e:
+            sys.stderr.write(str(e))
+            network_socket.close()
+            sys.exit(3)
